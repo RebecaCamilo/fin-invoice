@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinInvoice — Invoicing and Receivables Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+    <header class="topbar">
+        <div class="topbar__brand">
+            <span class="topbar__mark">Fin</span>Invoice
+            <small class="topbar__tag">MVP</small>
+        </div>
+        <div class="topbar__session">
+            <span class="topbar__user" id="text_session_user" title="User signed in for this session"></span>
+            <button type="button" class="btn btn--ghost btn--onbrand btn--sm" id="button_logout"
+                title="End this user's session">Sign out</button>
+            <button type="button" class="btn btn--ghost btn--onbrand btn--icon" id="button_toggle_menu"
+                title="Open navigation menu" aria-label="Open navigation menu" aria-expanded="false"
+                aria-controls="nav_main">☰</button>
+        </div>
+    </header>
+
+    <!-- ============================ SIGN IN ============================ -->
+    <div class="auth" id="view_auth" hidden>
+        <section class="auth__card" aria-labelledby="text_auth_title">
+            <h1 class="auth__brand"><span class="topbar__mark">Fin</span>Invoice</h1>
+            <h2 class="auth__title" id="text_auth_title">Sign in to your account</h2>
+            <p class="auth__subtitle" id="text_auth_subtitle">Each user can only access their own invoices.</p>
+
+            <form class="form form--auth" id="form_login">
+                <div class="field">
+                    <label class="field__label" for="input_login_username">Username</label>
+                    <input type="text" class="input" id="input_login_username" autocomplete="username"
+                        title="Registered username" required>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="input_login_password">Password</label>
+                    <input type="password" class="input" id="input_login_password" autocomplete="current-password"
+                        title="Account password" required>
+                </div>
+                <span class="field__hint" id="text_login_status"></span>
+                <button type="submit" class="btn btn--primary btn--block" id="button_login"
+                    title="Sign in to the application">Sign in</button>
+            </form>
+
+            <form class="form form--auth" id="form_register" hidden>
+                <div class="field">
+                    <label class="field__label" for="input_register_name">Display name</label>
+                    <input type="text" class="input" id="input_register_name" autocomplete="name"
+                        title="Name shown in the top bar" required>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="input_register_username">Username</label>
+                    <input type="text" class="input" id="input_register_username" autocomplete="username"
+                        title="Sign-in identifier: letters, digits, dot, hyphen or underscore" required>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="input_register_password">Password</label>
+                    <input type="password" class="input" id="input_register_password" autocomplete="new-password"
+                        title="At least 6 characters" required>
+                </div>
+                <div class="field">
+                    <label class="field__label" for="input_register_confirm">Confirm password</label>
+                    <input type="password" class="input" id="input_register_confirm" autocomplete="new-password"
+                        title="Repeat the chosen password" required>
+                </div>
+                <span class="field__hint" id="text_register_status"></span>
+                <button type="submit" class="btn btn--primary btn--block" id="button_register"
+                    title="Create the account and sign in">Create account</button>
+            </form>
+
+            <p class="auth__switch">
+                <span id="text_auth_switch_label">Don't have an account yet?</span>
+                <button type="button" class="btn--link" id="button_toggle_auth_mode"
+                    title="Switch between signing in and creating an account">Create account</button>
+            </p>
+
+            <p class="auth__notice">
+                Local demo environment: the password is verified on the server and stored only as a hash, but
+                traffic runs over plain HTTP and the database is not encrypted at rest. Do not use it with real
+                sensitive data.
+            </p>
+        </section>
+    </div>
+
+    <nav class="nav" id="nav_main" role="tablist" aria-label="Main navigation">
+        <button type="button" class="nav__item is-active" id="tab_dashboard" role="tab" aria-selected="true"
+            aria-controls="view_dashboard" data-view="dashboard" title="Dashboard">Dashboard</button>
+        <button type="button" class="nav__item" id="tab_clients" role="tab" aria-selected="false"
+            aria-controls="view_clients" data-view="clients" title="Client registry">Clients</button>
+        <button type="button" class="nav__item" id="tab_invoices" role="tab" aria-selected="false"
+            aria-controls="view_invoices" data-view="invoices" title="Invoice builder">Invoices</button>
+        <button type="button" class="nav__item" id="tab_issuer" role="tab" aria-selected="false"
+            aria-controls="view_issuer" data-view="issuer" title="Payee details (issuer)">Issuer</button>
+    </nav>
+
+    <main class="page">
+
+        <!-- ============================ DASHBOARD ============================ -->
+        <section class="view is-active" id="view_dashboard" role="tabpanel" aria-labelledby="tab_dashboard">
+            <div class="view__head">
+                <div>
+                    <h1 class="view__title">Dashboard</h1>
+                    <p class="view__subtitle" id="text_dashboard_period">Billing volume for the current month</p>
+                </div>
+                <label class="field field--inline">
+                    <span class="field__label">Period</span>
+                    <input type="month" id="input_dashboard_month" class="input" title="Reference month">
+                </label>
+            </div>
+
+            <div class="cards">
+                <article class="card card--total">
+                    <span class="card__label">Total issued</span>
+                    <strong class="card__value" id="text_total_issued">R$ 0,00</strong>
+                    <span class="card__hint" id="text_count_issued">0 invoices</span>
+                </article>
+                <article class="card card--paid">
+                    <span class="card__label">Settled (paid)</span>
+                    <strong class="card__value" id="text_total_paid">R$ 0,00</strong>
+                    <span class="card__hint" id="text_count_paid">0 invoices</span>
+                </article>
+                <article class="card card--pending">
+                    <span class="card__label">Pending</span>
+                    <strong class="card__value" id="text_total_pending">R$ 0,00</strong>
+                    <span class="card__hint" id="text_count_pending">0 invoices</span>
+                </article>
+                <article class="card card--overdue">
+                    <span class="card__label">Overdue</span>
+                    <strong class="card__value" id="text_total_overdue">R$ 0,00</strong>
+                    <span class="card__hint" id="text_count_overdue">0 invoices</span>
+                </article>
+            </div>
+
+            <div class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Invoices in this period</h2>
+                    <span class="panel__hint">Gross amounts. Each invoice shows its own net payout.</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="table" id="table_dashboard_invoices">
+                        <thead>
+                            <tr>
+                                <th scope="col">Number</th>
+                                <th scope="col">Payer</th>
+                                <th scope="col">Issued</th>
+                                <th scope="col">Due</th>
+                                <th scope="col" class="is-numeric">Gross</th>
+                                <th scope="col" class="is-numeric">Net</th>
+                                <th scope="col">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="body_dashboard_invoices"></tbody>
+                    </table>
+                </div>
+                <p class="empty" id="text_dashboard_empty" hidden>No invoices issued in this period.</p>
+            </div>
+        </section>
+
+        <!-- ============================ CLIENTS ============================ -->
+        <section class="view" id="view_clients" role="tabpanel" aria-labelledby="tab_clients" hidden>
+            <div class="view__head">
+                <div>
+                    <h1 class="view__title">Client registry</h1>
+                    <p class="view__subtitle">Payers — companies or individuals liable for paying the invoice.</p>
+                </div>
+            </div>
+
+            <div class="split">
+                <div class="panel">
+                    <div class="panel__head">
+                        <h2 class="panel__title" id="text_client_form_title">New client</h2>
+                    </div>
+                    <form class="form" id="form_client" novalidate>
+                        <input type="hidden" id="input_client_id">
+
+                        <fieldset class="field">
+                            <legend class="field__label">Payer type</legend>
+                            <div class="radios">
+                                <label class="radio">
+                                    <input type="radio" name="client_type" id="radio_client_pj" value="PJ" checked>
+                                    <span>Company (CNPJ)</span>
+                                </label>
+                                <label class="radio">
+                                    <input type="radio" name="client_type" id="radio_client_pf" value="PF">
+                                    <span>Individual (CPF)</span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="field" id="group_client_cnpj">
+                            <label class="field__label" for="input_client_cnpj">CNPJ</label>
+                            <div class="field__row">
+                                <input type="text" class="input" id="input_client_cnpj" inputmode="numeric"
+                                    placeholder="00.000.000/0000-00" maxlength="18"
+                                    title="Payer's CNPJ — company tax ID, looked up automatically">
+                                <button type="button" class="btn btn--secondary" id="button_lookup_cnpj"
+                                    title="Look up company details by CNPJ on BrasilAPI">Look up</button>
+                            </div>
+                            <span class="field__hint" id="text_cnpj_status"></span>
+                        </div>
+
+                        <div class="field" id="group_client_cpf" hidden>
+                            <label class="field__label" for="input_client_cpf">CPF</label>
+                            <input type="text" class="input" id="input_client_cpf" inputmode="numeric"
+                                placeholder="000.000.000-00" maxlength="14" title="Payer's CPF — individual tax ID">
+                        </div>
+
+                        <div class="field">
+                            <label class="field__label" for="input_client_name" id="label_client_name">Legal
+                                name</label>
+                            <input type="text" class="input" id="input_client_name" required
+                                title="Payer's legal or full name">
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="field">
+                                <label class="field__label" for="input_client_email">E-mail</label>
+                                <input type="email" class="input" id="input_client_email"
+                                    title="Payer's contact e-mail">
+                            </div>
+                            <div class="field">
+                                <label class="field__label" for="input_client_phone">Phone</label>
+                                <input type="text" class="input" id="input_client_phone"
+                                    title="Payer's contact phone">
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field__label" for="input_client_cep">CEP</label>
+                            <div class="field__row">
+                                <input type="text" class="input" id="input_client_cep" inputmode="numeric"
+                                    placeholder="00000-000" maxlength="9"
+                                    title="Brazilian postal code — autofills the address via ViaCEP">
+                                <button type="button" class="btn btn--secondary" id="button_lookup_cep"
+                                    title="Look up the address by postal code on ViaCEP">Look up</button>
+                            </div>
+                            <span class="field__hint" id="text_cep_status"></span>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="field">
+                                <label class="field__label" for="input_client_street">Street</label>
+                                <input type="text" class="input" id="input_client_street" title="Street or avenue">
+                            </div>
+                            <div class="field">
+                                <label class="field__label" for="input_client_number">Number</label>
+                                <input type="text" class="input" id="input_client_number" title="Building number">
+                            </div>
+                        </div>
+
+                        <div class="grid-3">
+                            <div class="field">
+                                <label class="field__label" for="input_client_district">District</label>
+                                <input type="text" class="input" id="input_client_district" title="District">
+                            </div>
+                            <div class="field">
+                                <label class="field__label" for="input_client_city">City</label>
+                                <input type="text" class="input" id="input_client_city" title="City">
+                            </div>
+                            <div class="field">
+                                <label class="field__label" for="input_client_state">State</label>
+                                <input type="text" class="input" id="input_client_state" maxlength="2"
+                                    title="Two-letter state code">
+                            </div>
+                        </div>
+
+                        <div class="form__actions">
+                            <button type="submit" class="btn btn--primary" id="button_save_client"
+                                title="Save this client">Save client</button>
+                            <button type="button" class="btn btn--ghost" id="button_reset_client"
+                                title="Clear the form">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel">
+                    <div class="panel__head">
+                        <h2 class="panel__title">Registered clients</h2>
+                        <input type="search" class="input input--search" id="input_search_client"
+                            placeholder="Filter by name or tax ID" title="Filter the client list">
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table" id="table_clients">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Payer</th>
+                                    <th scope="col">Tax ID</th>
+                                    <th scope="col">City/State</th>
+                                    <th scope="col" class="is-actions">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="body_clients"></tbody>
+                        </table>
+                    </div>
+                    <p class="empty" id="text_clients_empty" hidden>No clients registered yet.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================ INVOICES ============================ -->
+        <section class="view" id="view_invoices" role="tabpanel" aria-labelledby="tab_invoices" hidden>
+            <div class="view__head">
+                <div>
+                    <h1 class="view__title">Invoice builder</h1>
+                    <p class="view__subtitle">Build the charge, check the net payout and export the PDF.</p>
+                </div>
+            </div>
+
+            <div class="split split--invoice">
+                <div class="panel">
+                    <div class="panel__head">
+                        <h2 class="panel__title" id="text_invoice_form_title">New invoice</h2>
+                        <span class="panel__hint" id="text_invoice_number">Number: —</span>
+                    </div>
+                    <form class="form" id="form_invoice" novalidate>
+                        <input type="hidden" id="input_invoice_id">
+
+                        <div class="field">
+                            <label class="field__label" for="select_invoice_client">Payer</label>
+                            <select class="input" id="select_invoice_client" required
+                                title="Client who will receive this charge">
+                                <option value="">Select a client…</option>
+                            </select>
+                            <span class="field__hint" id="text_invoice_client_hint"></span>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="field">
+                                <label class="field__label" for="input_invoice_issue_date">Issue date</label>
+                                <input type="date" class="input" id="input_invoice_issue_date" required
+                                    title="Date the invoice is issued">
+                            </div>
+                            <div class="field">
+                                <label class="field__label" for="input_invoice_due_date">Due date</label>
+                                <input type="date" class="input" id="input_invoice_due_date" required
+                                    title="Deadline for settlement">
+                            </div>
+                        </div>
+
+                        <div class="items">
+                            <div class="items__head">
+                                <h3 class="items__title">Service items</h3>
+                                <button type="button" class="btn btn--secondary btn--sm" id="button_add_item"
+                                    title="Add a service line">+ Add item</button>
+                            </div>
+                            <div id="list_invoice_items"></div>
+                        </div>
+
+                        <div class="field">
+                            <label class="field__label" for="input_invoice_notes">Notes</label>
+                            <textarea class="input" id="input_invoice_notes" rows="2"
+                                title="Free text printed on the invoice"></textarea>
+                        </div>
+
+                        <div class="form__actions">
+                            <button type="submit" class="btn btn--primary" id="button_save_invoice"
+                                title="Save this invoice">Save invoice</button>
+                            <button type="button" class="btn btn--accent" id="button_generate_pdf"
+                                title="Save and download the invoice PDF">Generate invoice (PDF)</button>
+                            <button type="button" class="btn btn--ghost" id="button_reset_invoice"
+                                title="Discard and start a new invoice">New</button>
+                        </div>
+                    </form>
+                </div>
+
+                <aside class="panel panel--summary" aria-label="Invoice financial summary">
+                    <div class="panel__head">
+                        <h2 class="panel__title">Financial summary</h2>
+                    </div>
+                    <dl class="summary">
+                        <div class="summary__row">
+                            <dt>Gross amount</dt>
+                            <dd id="text_summary_gross">R$ 0,00</dd>
+                        </div>
+                        <div class="summary__row">
+                            <dt>
+                                Tax regime
+                                <button type="button" class="help" id="button_help_regime_summary"
+                                    title="Learn how Simples Nacional and MEI affect this invoice"
+                                    aria-label="Learn about the tax regimes">?</button>
+                            </dt>
+                            <dd id="text_summary_regime">Simples Nacional</dd>
+                        </div>
+                        <div class="summary__row">
+                            <dt>Applied rate</dt>
+                            <dd id="text_summary_rate">6%</dd>
+                        </div>
+                        <div class="summary__row">
+                            <dt>Tax withheld</dt>
+                            <dd id="text_summary_tax">− R$ 0,00</dd>
+                        </div>
+                        <div class="summary__row summary__row--net">
+                            <dt>Net payout</dt>
+                            <dd id="text_summary_net">R$ 0,00</dd>
+                        </div>
+                    </dl>
+                    <p class="summary__pix">
+                        <span class="summary__pix-label">Pix settlement key</span>
+                        <span class="summary__pix-value" id="text_summary_pix">not registered</span>
+                    </p>
+                </aside>
+            </div>
+
+            <div class="panel">
+                <div class="panel__head">
+                    <h2 class="panel__title">Issued invoices</h2>
+                    <select class="input input--search" id="select_invoice_filter"
+                        title="Filter issued invoices by status">
+                        <option value="todas">All statuses</option>
+                        <option value="pendente">Pending</option>
+                        <option value="paga">Paid</option>
+                        <option value="vencida">Overdue</option>
+                    </select>
+                </div>
+                <div class="table-wrap">
+                    <table class="table" id="table_invoices">
+                        <thead>
+                            <tr>
+                                <th scope="col">Number</th>
+                                <th scope="col">Payer</th>
+                                <th scope="col">Due</th>
+                                <th scope="col" class="is-numeric">Gross</th>
+                                <th scope="col" class="is-numeric">Net</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="is-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="body_invoices"></tbody>
+                    </table>
+                </div>
+                <p class="empty" id="text_invoices_empty" hidden>No invoices match the current filter.</p>
+            </div>
+        </section>
+
+        <!-- ============================ ISSUER ============================ -->
+        <section class="view" id="view_issuer" role="tabpanel" aria-labelledby="tab_issuer" hidden>
+            <div class="view__head">
+                <div>
+                    <h1 class="view__title">Payee details</h1>
+                    <p class="view__subtitle">Who provides the service and is entitled to receive the payment.</p>
+                </div>
+            </div>
+
+            <div class="panel panel--narrow">
+                <form class="form" id="form_issuer" novalidate>
+                    <div class="field">
+                        <label class="field__label" for="input_issuer_name">Name / Legal name</label>
+                        <input type="text" class="input" id="input_issuer_name" required
+                            title="Payee name printed on the invoice">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field__label" for="input_issuer_document">CNPJ / CPF</label>
+                            <input type="text" class="input" id="input_issuer_document"
+                                title="Payee's Brazilian tax ID">
+                        </div>
+                        <div class="field">
+                            <label class="field__label" for="select_issuer_regime">
+                                Tax regime
+                                <button type="button" class="help" id="button_help_regime"
+                                    title="Learn how Simples Nacional and MEI affect this invoice"
+                                    aria-label="Learn about the tax regimes">?</button>
+                            </label>
+                            <select class="input" id="select_issuer_regime"
+                                title="Regime that defines the rate applied to your invoices">
+                                <option value="SIMPLES">Simples Nacional — Anexo III (6%)</option>
+                                <option value="MEI">MEI — exempt on the invoice (0%)</option>
+                            </select>
+                            <span class="field__hint" id="text_issuer_regime_hint"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field__label" for="input_issuer_email">E-mail</label>
+                            <input type="email" class="input" id="input_issuer_email" title="Payee's e-mail">
+                        </div>
+                        <div class="field">
+                            <label class="field__label" for="input_issuer_phone">Phone</label>
+                            <input type="text" class="input" id="input_issuer_phone" title="Payee's phone">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="field__label" for="input_issuer_address">Address</label>
+                        <input type="text" class="input" id="input_issuer_address" title="Payee's full address">
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="field">
+                            <label class="field__label" for="select_issuer_pix_type">Pix key type</label>
+                            <select class="input" id="select_issuer_pix_type" title="Type of the Pix settlement key">
+                                <option value="CNPJ">CNPJ</option>
+                                <option value="CPF">CPF</option>
+                                <option value="E-mail">E-mail</option>
+                                <option value="Telefone">Phone</option>
+                                <option value="Aleatória">Random</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="field__label" for="input_issuer_pix_key">Pix key</label>
+                            <input type="text" class="input" id="input_issuer_pix_key"
+                                title="Pix key printed on the invoice for settlement">
+                        </div>
+                    </div>
+
+                    <div class="form__actions">
+                        <button type="submit" class="btn btn--primary" id="button_save_issuer"
+                            title="Save the payee details">Save details</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================ TAX REGIME HELP ============================ -->
+    <dialog class="modal" id="dialog_tax_regimes" aria-labelledby="text_tax_regimes_title">
+        <article class="modal__card">
+            <header class="modal__head">
+                <h2 class="modal__title" id="text_tax_regimes_title">Brazilian tax regimes</h2>
+                <button type="button" class="modal__close" id="button_close_tax_regimes" title="Close"
+                    aria-label="Close">×</button>
+            </header>
+
+            <div class="modal__body">
+                <p class="modal__lead">
+                    The regime you pick in <strong>Payee details</strong> decides how much tax this app withholds
+                    from every invoice — and therefore your net payout. Both names below are Brazilian legal terms
+                    and are kept in Portuguese on purpose.
+                </p>
+
+                <section class="regime">
+                    <h3 class="regime__name">Simples Nacional <span class="regime__rate">6%</span></h3>
+                    <p class="regime__text">
+                        A simplified tax regime that bundles several federal, state and municipal taxes into a
+                        single monthly payment, available to micro and small companies. This app applies the
+                        <strong>first bracket of Anexo III</strong>, the schedule that covers most service
+                        providers — including software development.
+                    </p>
+                    <p class="regime__effect">
+                        <strong>On the invoice:</strong> 6% of the gross amount is shown as tax withheld and
+                        deducted from the net payout.
+                    </p>
+                </section>
+
+                <section class="regime">
+                    <h3 class="regime__name">MEI <span class="regime__rate regime__rate--zero">0%</span></h3>
+                    <p class="regime__text">
+                        Short for <em>Microempreendedor Individual</em> — individual micro-entrepreneur, the
+                        lightest business category in Brazil, aimed at self-employed professionals. A MEI settles
+                        taxes through <strong>DAS</strong>, a fixed monthly contribution that does not vary with
+                        revenue.
+                    </p>
+                    <p class="regime__effect">
+                        <strong>On the invoice:</strong> no tax is withheld, so gross and net are the same.
+                        Deducting a percentage here would charge the same tax twice, since it was already paid
+                        in the monthly DAS.
+                    </p>
+                </section>
+
+                <table class="regime-table">
+                    <caption class="regime-table__caption">Side by side, on a R$ 10,000.00 invoice</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Regime</th>
+                            <th scope="col" class="is-numeric">Rate</th>
+                            <th scope="col" class="is-numeric">Tax</th>
+                            <th scope="col" class="is-numeric">Net payout</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">Simples Nacional</th>
+                            <td class="is-numeric">6%</td>
+                            <td class="is-numeric">R$ 600,00</td>
+                            <td class="is-numeric cell-strong">R$ 9.400,00</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">MEI</th>
+                            <td class="is-numeric">0%</td>
+                            <td class="is-numeric">R$ 0,00</td>
+                            <td class="is-numeric cell-strong">R$ 10.000,00</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p class="modal__notice">
+                    <strong>Simplified model.</strong> A real Simples Nacional rate is progressive: it depends on
+                    the company's trailing twelve-month revenue and on which Anexo the activity falls under, and
+                    it can be reduced by the payroll factor. This MVP fixes the first bracket of Anexo III to keep
+                    the calculation legible. Do not use these figures for filing — talk to an accountant.
+                </p>
+            </div>
+
+            <footer class="modal__foot">
+                <button type="button" class="btn btn--primary" id="button_dismiss_tax_regimes"
+                    title="Close this explanation">Got it</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <div class="toast" id="box_toast" role="status" aria-live="polite" hidden></div>
+
+    <!-- jsPDF 2.5.1 (UMD) served locally: PDF generation works offline. -->
+    <script src="assets/vendor/jspdf.umd.min.js"></script>
+    <!-- Calculation engine shared with the server (ES module, runs before DOMContentLoaded). -->
+    <script type="module" src="assets/js/shared-bootstrap.js"></script>
+    <script src="assets/js/format.js"></script>
+    <script src="assets/js/api-client.js"></script>
+    <script src="assets/js/lookup.js"></script>
+    <script src="assets/js/pdf.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+
+</html>
