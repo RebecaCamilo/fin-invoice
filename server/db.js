@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     notes      TEXT NOT NULL DEFAULT '',
     regime     TEXT NOT NULL,
     tax_rate   REAL NOT NULL,
+    client_pays_grossup INTEGER NOT NULL DEFAULT 0,
     gross      REAL NOT NULL,
     tax        REAL NOT NULL,
     net        REAL NOT NULL,
@@ -116,6 +117,11 @@ export function createDatabase(location = ':memory:') {
 
     const db = new DatabaseSync(location);
     db.exec(SCHEMA);
+
+    const invoiceColumns = db.prepare('PRAGMA table_info(invoices)').all();
+    if (!invoiceColumns.some((column) => column.name === 'client_pays_grossup')) {
+        db.exec('ALTER TABLE invoices ADD COLUMN client_pays_grossup INTEGER NOT NULL DEFAULT 0');
+    }
 
     return db;
 }

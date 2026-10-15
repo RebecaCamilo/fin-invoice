@@ -8,9 +8,8 @@
 
    Por isso não depende de DOM, de rede nem de formatação pt-BR.
 
-   Regra: Simples Nacional (Anexo III, 1ª faixa) = 6%.
-          MEI = isento na nota (0%), pois liquida os tributos na
-          guia fixa mensal unificada (DAS).
+   Estimativa: o valor dos serviços é o líquido desejado. A taxa é
+   aplicada como gross-up para que o líquido seja preservado.
    ============================================================ */
 
 export const REGIMES = {
@@ -44,12 +43,14 @@ export function lineTotal(item) {
  * @param {string} regime Regime tributário do beneficiário.
  * @returns {{rate: number, gross: number, tax: number, net: number}} Totais.
  */
-export function totals(items, regime) {
+export function totals(items, regime, clientPaysGrossup = true) {
     const rate = rateFor(regime);
-    const gross = round((items || []).reduce((sum, item) => sum + lineTotal(item), 0));
-    const tax = round(gross * (rate / 100));
+    const net = round((items || []).reduce((sum, item) => sum + lineTotal(item), 0));
+    const grossupRate = clientPaysGrossup ? rate : 0;
+    const gross = round(net / (1 - grossupRate / 100));
+    const tax = round(gross - net);
 
-    return { rate, gross, tax, net: round(gross - tax) };
+    return { rate, gross, tax, net, clientPaysGrossup };
 }
 
 /** Data corrente no formato "AAAA-MM-DD", em horário local. */

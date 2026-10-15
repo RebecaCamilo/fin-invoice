@@ -23,6 +23,7 @@ function toInvoice(row, items) {
         notes: row.notes,
         regime: row.regime,
         taxRate: row.tax_rate,
+        clientPaysGrossup: Boolean(row.client_pays_grossup),
         gross: row.gross,
         tax: row.tax,
         net: row.net,
@@ -116,10 +117,11 @@ export function createInvoiceRepository(db) {
 
                 db.prepare(`
                     INSERT INTO invoices (id, owner_id, number, client_id, issue_date, due_date, notes,
-                                          regime, tax_rate, gross, tax, net, status, paid_at, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', '', ?)
+                                          regime, tax_rate, client_pays_grossup, gross, tax, net, status, paid_at, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendente', '', ?)
                 `).run(id, String(ownerId), number, invoice.clientId, invoice.issueDate, invoice.dueDate,
-                    invoice.notes, invoice.regime, invoice.taxRate, invoice.gross, invoice.tax, invoice.net,
+                    invoice.notes, invoice.regime, invoice.taxRate, Number(invoice.clientPaysGrossup),
+                    invoice.gross, invoice.tax, invoice.net,
                     new Date().toISOString());
 
                 replaceItems(id, invoice.items);
@@ -136,10 +138,11 @@ export function createInvoiceRepository(db) {
             return transaction(() => {
                 db.prepare(`
                     UPDATE invoices SET client_id = ?, issue_date = ?, due_date = ?, notes = ?,
-                                        regime = ?, tax_rate = ?, gross = ?, tax = ?, net = ?
+                                        regime = ?, tax_rate = ?, client_pays_grossup = ?, gross = ?, tax = ?, net = ?
                     WHERE id = ? AND owner_id = ?
                 `).run(invoice.clientId, invoice.issueDate, invoice.dueDate, invoice.notes, invoice.regime,
-                    invoice.taxRate, invoice.gross, invoice.tax, invoice.net, String(id), String(ownerId));
+                    invoice.taxRate, Number(invoice.clientPaysGrossup), invoice.gross, invoice.tax, invoice.net,
+                    String(id), String(ownerId));
 
                 replaceItems(String(id), invoice.items);
 

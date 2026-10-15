@@ -142,7 +142,7 @@
             <div class="panel">
                 <div class="panel__head">
                     <h2 class="panel__title">Invoices in this period</h2>
-                    <span class="panel__hint">Gross amounts. Each invoice shows its own net payout.</span>
+                    <span class="panel__hint">Invoice totals, including each estimated gross-up.</span>
                 </div>
                 <div class="table-wrap">
                     <table class="table" id="table_dashboard_invoices">
@@ -310,7 +310,7 @@
             <div class="view__head">
                 <div>
                     <h1 class="view__title">Invoice builder</h1>
-                    <p class="view__subtitle">Build the charge, check the net payout and export the PDF.</p>
+                    <p class="view__subtitle">Enter your target payout, review the invoice total and export the PDF.</p>
                 </div>
             </div>
 
@@ -345,12 +345,26 @@
                             </div>
                         </div>
 
+                        <div class="field field--toggle">
+                            <label class="toggle" for="input_invoice_client_pays_grossup">
+                                <input type="checkbox" id="input_invoice_client_pays_grossup" checked>
+                                <span>Charge the estimated 6% gross-up to the client</span>
+                            </label>
+                            <span class="field__hint" id="text_invoice_grossup_hint">
+                                When enabled, the invoice total is increased to preserve your target payout.
+                            </span>
+                        </div>
+
                         <div class="items">
                             <div class="items__head">
-                                <h3 class="items__title">Service items</h3>
+                                <h3 class="items__title">Service items — target payout</h3>
                                 <button type="button" class="btn btn--secondary btn--sm" id="button_add_item"
                                     title="Add a service line">+ Add item</button>
                             </div>
+                            <p class="field__hint">
+                                Enter how much you want to receive for these services. The toggle above controls
+                                whether the estimated gross-up is added to the invoice.
+                            </p>
                             <div id="list_invoice_items"></div>
                         </div>
 
@@ -377,8 +391,8 @@
                     </div>
                     <dl class="summary">
                         <div class="summary__row">
-                            <dt>Gross amount</dt>
-                            <dd id="text_summary_gross">R$ 0,00</dd>
+                            <dt>Target payout before your own taxes</dt>
+                            <dd id="text_summary_target">R$ 0,00</dd>
                         </div>
                         <div class="summary__row">
                             <dt>
@@ -390,16 +404,20 @@
                             <dd id="text_summary_regime">Simples Nacional</dd>
                         </div>
                         <div class="summary__row">
-                            <dt>Applied rate</dt>
+                            <dt>Estimate rate</dt>
                             <dd id="text_summary_rate">6%</dd>
                         </div>
                         <div class="summary__row">
-                            <dt>Tax withheld</dt>
-                            <dd id="text_summary_tax">− R$ 0,00</dd>
+                            <dt>6% gross-up charged to client</dt>
+                            <dd id="text_summary_client_pays_grossup">Yes</dd>
+                        </div>
+                        <div class="summary__row">
+                            <dt>Gross-up adjustment</dt>
+                            <dd id="text_summary_tax">+ R$ 0,00</dd>
                         </div>
                         <div class="summary__row summary__row--net">
-                            <dt>Net payout</dt>
-                            <dd id="text_summary_net">R$ 0,00</dd>
+                            <dt>Invoice total</dt>
+                            <dd id="text_summary_total">R$ 0,00</dd>
                         </div>
                     </dl>
                     <p class="summary__pix">
@@ -533,22 +551,21 @@
 
             <div class="modal__body">
                 <p class="modal__lead">
-                    The regime you pick in <strong>Payee details</strong> decides how much tax this app withholds
-                    from every invoice — and therefore your net payout. Both names below are Brazilian legal terms
-                    and are kept in Portuguese on purpose.
+                    For this estimate, service amounts are the payout you want to receive. The selected rate is
+                    grossed up so the invoice total is higher and the target payout is preserved. This is not a
+                    determination of your actual tax or withholding obligations; confirm those with an accountant.
                 </p>
 
                 <section class="regime">
                     <h3 class="regime__name">Simples Nacional <span class="regime__rate">6%</span></h3>
                     <p class="regime__text">
-                        A simplified tax regime that bundles several federal, state and municipal taxes into a
-                        single monthly payment, available to micro and small companies. This app applies the
-                        <strong>first bracket of Anexo III</strong>, the schedule that covers most service
-                        providers — including software development.
+                        This app uses an illustrative 6% rate for this regime. The actual rate depends on the
+                        business and its circumstances.
                     </p>
                     <p class="regime__effect">
-                        <strong>On the invoice:</strong> 6% of the gross amount is shown as tax withheld and
-                        deducted from the net payout.
+                        <strong>In this estimate:</strong> the app divides the target payout by 0.94 to calculate
+                        the invoice total. For a R$ 10,000.00 target payout, that is R$ 10,638.30 total, including
+                        a R$ 638.30 gross-up adjustment.
                     </p>
                 </section>
 
@@ -561,28 +578,27 @@
                         revenue.
                     </p>
                     <p class="regime__effect">
-                        <strong>On the invoice:</strong> no tax is withheld, so gross and net are the same.
-                        Deducting a percentage here would charge the same tax twice, since it was already paid
-                        in the monthly DAS.
+                        <strong>In this estimate:</strong> the rate is 0%, so the invoice total equals the target
+                        payout. This does not represent or calculate the MEI's separate tax obligations.
                     </p>
                 </section>
 
                 <table class="regime-table">
-                    <caption class="regime-table__caption">Side by side, on a R$ 10,000.00 invoice</caption>
+                    <caption class="regime-table__caption">Examples for a R$ 10,000.00 target payout</caption>
                     <thead>
                         <tr>
                             <th scope="col">Regime</th>
                             <th scope="col" class="is-numeric">Rate</th>
-                            <th scope="col" class="is-numeric">Tax</th>
-                            <th scope="col" class="is-numeric">Net payout</th>
+                            <th scope="col" class="is-numeric">Gross-up</th>
+                            <th scope="col" class="is-numeric">Invoice total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <th scope="row">Simples Nacional</th>
                             <td class="is-numeric">6%</td>
-                            <td class="is-numeric">R$ 600,00</td>
-                            <td class="is-numeric cell-strong">R$ 9.400,00</td>
+                            <td class="is-numeric">R$ 638,30</td>
+                            <td class="is-numeric cell-strong">R$ 10.638,30</td>
                         </tr>
                         <tr>
                             <th scope="row">MEI</th>
@@ -594,10 +610,9 @@
                 </table>
 
                 <p class="modal__notice">
-                    <strong>Simplified model.</strong> A real Simples Nacional rate is progressive: it depends on
-                    the company's trailing twelve-month revenue and on which Anexo the activity falls under, and
-                    it can be reduced by the payroll factor. This MVP fixes the first bracket of Anexo III to keep
-                    the calculation legible. Do not use these figures for filing — talk to an accountant.
+                    <strong>Simplified estimate.</strong> The 6% rate is not necessarily the rate that applies to
+                    your business, and this calculation does not establish whether a client must withhold tax.
+                    Confirm your rate and invoicing obligations with an accountant.
                 </p>
             </div>
 

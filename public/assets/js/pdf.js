@@ -121,7 +121,7 @@
         return y;
     }
 
-    /** Quadro de totais: bruto, retenção tributária e líquido a receber. */
+    /** Quadro de totais: valor desejado, gross-up e total a pagar. */
     function totalsBox(doc, invoice, startY) {
         var boxX = 112;
         var boxWidth = PAGE.width - PAGE.margin - boxX;
@@ -130,15 +130,17 @@
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(9.5);
         setColor(doc, COLORS.soft);
-        doc.text('Gross amount', boxX, y);
+        doc.text('Target payout', boxX, y);
         setColor(doc, COLORS.text);
-        doc.text(Format.money(invoice.gross), COLUMNS.total, y, { align: 'right' });
+        doc.text(Format.money(invoice.net), COLUMNS.total, y, { align: 'right' });
 
         y += 6;
         setColor(doc, COLORS.soft);
-        doc.text('Tax (' + invoice.taxRate + '%)', boxX, y);
+        doc.text(invoice.clientPaysGrossup
+            ? 'Gross-up (' + invoice.taxRate + '%, charged to client)'
+            : 'Gross-up not charged to client', boxX, y);
         setColor(doc, COLORS.text);
-        doc.text('- ' + Format.money(invoice.tax), COLUMNS.total, y, { align: 'right' });
+        doc.text('+ ' + Format.money(invoice.tax), COLUMNS.total, y, { align: 'right' });
 
         y += 4;
         setFill(doc, COLORS.accent);
@@ -147,9 +149,9 @@
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text('NET PAYOUT', boxX + 4, y + 6);
+        doc.text('INVOICE TOTAL', boxX + 4, y + 6);
         doc.setFontSize(13);
-        doc.text(Format.money(invoice.net), COLUMNS.total - 2, y + 11, { align: 'right' });
+        doc.text(Format.money(invoice.gross), COLUMNS.total - 2, y + 11, { align: 'right' });
 
         return y + 14;
     }

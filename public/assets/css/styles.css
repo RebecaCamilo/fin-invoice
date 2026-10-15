@@ -450,6 +450,28 @@ body:not(.is-authenticated) .topbar__session {
     color: var(--c-accent);
 }
 
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    color: var(--c-text);
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toggle input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--c-brand);
+}
+
+.toggle input:disabled {
+    cursor: not-allowed;
+}
+
 .input {
     width: 100%;
     padding: 10px 12px;

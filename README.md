@@ -1,8 +1,8 @@
 # FinInvoice — Invoicing and Receivables Management
 
 A billing tool for Brazilian freelancers, independent professionals and micro-businesses that invoice
-other companies (B2B): register payers, compute the tax withholding automatically, track the life
-cycle of each charge and export a professional invoice as PDF.
+other companies (B2B): register payers, estimate a grossed-up invoice total from a target payout,
+track the life cycle of each charge and export a professional invoice as PDF.
 
 Client/server architecture: a REST API on Node with a **SQLite database stored inside the project
 folder**, and a plain HTML/CSS/JS front end with no build step.
@@ -39,8 +39,9 @@ The database file is created automatically at `data/fininvoice.db` the first tim
    key. The invoice cannot be generated without them.
 3. Register a payer under **Clients**. Typing a CNPJ and clicking *Look up* fills in the company
    details automatically; for individuals, the postal code fills in the address.
-4. Build the charge under **Invoices**, watch the net payout update as you type, then **Save
-   invoice** or **Generate invoice (PDF)**.
+4. Build the charge under **Invoices**. Enter the payout you want to receive for each service; the
+   invoice total includes a gross-up based on the selected estimate rate. Then **Save invoice** or
+   **Generate invoice (PDF)**.
 
 ### Available scripts
 
@@ -48,7 +49,7 @@ The database file is created automatically at `data/fininvoice.db` the first tim
 | --- | --- |
 | `npm start` | Starts the server on `http://localhost:3000`. |
 | `npm run dev` | Same, restarting on every file change (`node --watch`). |
-| `npm test` | Runs `node --test` (no tests written yet — see [Automated tests](#automated-tests)). |
+| `npm test` | Runs the financial calculation tests with Node's built-in test runner. |
 
 ### Configuration
 
@@ -184,25 +185,25 @@ with `{ "error": "message" }`.
     - **Reason:** separating the two roles is what allows one registration to be reused across many
       charges and the document to be addressed correctly.
 
-### Simplified tax rule
+### Gross-up estimate
 
-Both regime names are Brazilian legal terms and are deliberately kept in Portuguese. The app explains
-them in a modal, reachable from the `?` button next to the **Tax regime** field.
+Service amounts represent the payout the freelancer wants to receive. For an estimated 6% rate, the
+app calculates `Invoice total = Target payout / (1 - 0.06)`, then shows the difference as a gross-up
+adjustment. For example, a R$ 10,000.00 target payout results in a R$ 10,638.30 invoice total and a
+R$ 638.30 adjustment.
 
-- **Simples Nacional** → **6%** rate (first bracket of Anexo III).
-    - **Reason:** it is the most common setup for Brazilian technology service providers, and pinning
-      the bracket avoids dragging a full floating tax matrix into an MVP.
-- **MEI** → **0%**, exempt on the invoice.
-    - **Reason:** a MEI settles taxes through DAS, a fixed monthly contribution; withholding a
-      percentage here would charge the same tax twice.
-- Formula: `Tax = Gross × (Rate / 100)` and `Net = Gross − Tax`.
-    - **Reason:** the professional prices the job by what actually lands in the bank account, not by
-      the face value.
+- The **Charge the estimated 6% gross-up to the client** toggle controls whether the adjustment is
+  included in the invoice. When off, the invoice remains at the service amounts entered; the
+  freelancer remains responsible for any separate tax payments.
+- **Simples Nacional** → illustrative **6%** rate used for the gross-up estimate.
+- **MEI** → **0%** rate in this estimate, so invoice total equals target payout.
+- This estimate does not determine actual tax liability or whether the payer must withhold tax.
+  Confirm the applicable rate and invoicing obligations with an accountant.
 - **The server never trusts the totals sent by the browser**: it recomputes everything from the line
   items and the regime stored in the payee record. The live preview on screen uses the very same
   module (`shared/finance.js`).
-    - **Reason:** money is financial data — accepting a client-side total would let anyone forge an
-      invoice with zero tax. Sharing the module keeps preview and stored value from drifting apart.
+    - **Reason:** sharing the module keeps the preview and stored value in sync, while server-side
+      recomputation prevents clients from forging invoice totals.
 
 ### Invoice life cycle
 
@@ -239,9 +240,8 @@ language, no switcher, no key dictionary.
 ### Tax regime help
 
 A `?` button next to the **Tax regime** field (*Issuer* tab) and next to the regime line in the
-invoice summary opens a modal explaining `Simples Nacional` and `MEI`: what each one is, the rate
-applied, the effect on the net payout, a side-by-side comparison on a R$ 10,000.00 invoice, and the
-caveat that the model is simplified.
+invoice summary opens a modal explaining how the estimate affects the target payout and invoice
+total, with a side-by-side comparison and a caveat that actual tax treatment may differ.
 
 Why a modal rather than a tooltip or a dedicated page: the content includes a table and a legal
 disclaimer, which do not fit in a bubble and vanish on touch screens; and it has to sit where the
@@ -252,7 +252,8 @@ provides focus trapping, `Esc` to close and proper dialog semantics.
 
 ## Automated tests
 
-**There are no tests yet** — the ground is prepared for you to write them:
+Financial gross-up calculations and invoice pricing are covered by `shared/finance.test.js` and
+`server/services/invoices.test.js`:
 
 - `npm test` already runs `node --test`, the built-in runner, with no extra dependency.
 - `supertest` is installed as a dev dependency.
@@ -296,6 +297,9 @@ Playwright) and `pdf.js` (visual output).
   package has not yet passed the window in which most supply-chain attacks are caught and yanked.
 - **Calculation engine shared** between server and browser, served from `/shared`, so the real-time
   preview and the stored value come from the same code.
+- **Gross-up estimate**: service amounts are treated as the desired payout, and the invoice total is
+  calculated as `payout / (1 - rate)`. The 6% rate is only an estimate and does not determine actual
+  tax or client withholding obligations; confirm the applicable treatment with an accountant.
 - **Database excluded from Git** (`.gitignore`): a versioned binary produces unresolvable conflicts
   and tends to accumulate real data. The file lives in the project folder but is never committed.
 - **Amounts stored as `REAL`**: a production financial system should use integer cents. Floating

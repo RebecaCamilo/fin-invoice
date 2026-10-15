@@ -141,8 +141,19 @@
     function updateRegimeHint() {
         var regime = $('select_issuer_regime').value;
         setHint($('text_issuer_regime_hint'), regime === 'MEI'
-            ? 'MEI settles taxes through DAS, a fixed monthly contribution, so nothing is withheld here.'
-            : '6% rate — first bracket of Anexo III of the Simples Nacional.');
+            ? 'No gross-up is applied in this estimate. MEI tax obligations are not calculated here.'
+            : 'Illustrative 6% gross-up estimate. Confirm your actual rate and obligations with an accountant.');
+
+        var grossupToggle = $('input_invoice_client_pays_grossup');
+        grossupToggle.disabled = regime === 'MEI';
+        if (grossupToggle.disabled) {
+            grossupToggle.checked = false;
+        }
+        setHint($('text_invoice_grossup_hint'), regime === 'MEI'
+            ? 'Not applicable for the selected MEI estimate (0%).'
+            : grossupToggle.checked
+                ? 'Enabled: the invoice total is increased to preserve your target payout.'
+                : 'Disabled: no gross-up is added to the invoice. You remain responsible for any separate tax payments.');
     }
 
     /**
@@ -506,18 +517,23 @@
      */
     function recalculateInvoice() {
         var issuer = state.issuer || { regime: 'SIMPLES', pixKey: '', pixType: '' };
-        var totals = Finance.totals(state.editingItems, issuer.regime);
+        var clientPaysGrossup = $('input_invoice_client_pays_grossup').checked
+            && issuer.regime === 'SIMPLES';
+        var totals = Finance.totals(state.editingItems, issuer.regime, clientPaysGrossup);
 
         document.querySelectorAll('#list_invoice_items .item').forEach(function (row) {
             var item = state.editingItems[Number(row.dataset.index)];
             row.querySelector('[data-role="line-total"]').textContent = Format.money(Finance.lineTotal(item));
         });
 
-        $('text_summary_gross').textContent = Format.money(totals.gross);
+        $('text_summary_target').textContent = Format.money(totals.net);
         $('text_summary_regime').textContent = Finance.labelFor(issuer.regime);
         $('text_summary_rate').textContent = totals.rate + '%';
-        $('text_summary_tax').textContent = '− ' + Format.money(totals.tax);
-        $('text_summary_net').textContent = Format.money(totals.net);
+        $('text_summary_client_pays_grossup').textContent = issuer.regime === 'MEI'
+            ? 'Not applicable'
+            : clientPaysGrossup ? 'Yes' : 'No';
+        $('text_summary_tax').textContent = '+ ' + Format.money(totals.tax);
+        $('text_summary_total').textContent = Format.money(totals.gross);
         $('text_summary_pix').textContent = issuer.pixKey
             ? issuer.pixType + ' — ' + issuer.pixKey
             : 'not registered';
@@ -553,6 +569,7 @@
         $('text_invoice_number').textContent = 'Number: …';
         $('input_invoice_issue_date').value = Format.today();
         $('input_invoice_due_date').value = Format.addDays(Format.today(), 15);
+        updateRegimeHint();
 
         state.editingItems = [];
         addItem();
@@ -574,6 +591,7 @@
             issueDate: $('input_invoice_issue_date').value,
             dueDate: $('input_invoice_due_date').value,
             notes: $('input_invoice_notes').value,
+            clientPaysGrossup: $('input_invoice_client_pays_grossup').checked,
             items: state.editingItems.filter(function (item) {
                 return String(item.description).trim() || Finance.lineTotal(item) > 0;
             })
@@ -657,6 +675,8 @@
         $('input_invoice_issue_date').value = invoice.issueDate;
         $('input_invoice_due_date').value = invoice.dueDate;
         $('input_invoice_notes').value = invoice.notes || '';
+        $('input_invoice_client_pays_grossup').checked = Boolean(invoice.clientPaysGrossup);
+        updateRegimeHint();
 
         state.editingItems = (invoice.items || []).map(function (item) {
             return { description: item.description, quantity: item.quantity, unitPrice: item.unitPrice };
@@ -732,6 +752,11 @@
     }
 
     function initInvoices() {
+        $('input_invoice_client_pays_grossup').addEventListener('change', function () {
+            updateRegimeHint();
+            recalculateInvoice();
+        });
+
         $('button_add_item').addEventListener('click', function () {
             addItem();
             var inputs = document.querySelectorAll('#list_invoice_items [data-field="description"]');

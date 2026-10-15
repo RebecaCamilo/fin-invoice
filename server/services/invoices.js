@@ -62,7 +62,8 @@ export function priceInvoice(payload, issuer) {
     }
 
     const items = rawItems.map(normalizeItem);
-    const computed = totals(items, issuer.regime);
+    const clientPaysGrossup = issuer.regime === 'SIMPLES' && payload?.clientPaysGrossup !== false;
+    const computed = totals(items, issuer.regime, clientPaysGrossup);
 
     if (computed.gross <= 0) {
         throw unprocessable('The gross amount must be greater than zero.');
@@ -75,6 +76,7 @@ export function priceInvoice(payload, issuer) {
         notes: String(payload?.notes ?? '').trim(),
         regime: issuer.regime,
         taxRate: computed.rate,
+        clientPaysGrossup,
         gross: computed.gross,
         tax: computed.tax,
         net: computed.net,
